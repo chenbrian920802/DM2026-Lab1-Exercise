@@ -129,6 +129,21 @@ def make_tools(session):
 
         # Step 3: Convert to pandas DataFrame for PAMI DF2DB
         transaction_df = pd.DataFrame(filtered_dtm, columns=surviving_terms)
+        
+        # Sanitize column names and handle potential duplicate names resulting from non-ASCII stripping
+        sanitized_cols = []
+        counts = {}
+        for col in transaction_df.columns:
+            clean_col = str(col).encode('ascii', 'ignore').decode('ascii')
+            if not clean_col:
+                clean_col = "term"
+            if clean_col in counts:
+                counts[clean_col] += 1
+                sanitized_cols.append(f"{clean_col}_{counts[clean_col]}")
+            else:
+                counts[clean_col] = 0
+                sanitized_cols.append(clean_col)
+        transaction_df.columns = sanitized_cols
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_file = os.path.join(tmpdir, "transactional.db")
